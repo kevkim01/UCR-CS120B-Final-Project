@@ -1,7 +1,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include <util/delay.h>
 #include "timer.h"
 #include <stdio.h>
 #include "bit.h"
@@ -9,8 +8,8 @@
 #include "io.c"
 #include "pwm.c"
 #include "joystickADC.c"
-#include "nokia5110.h"
-#include "nokia5110.c"
+#include "pcd8544.h"
+#include "pcd8544.c"
 /*
 #include "5110.h"
 #include "5110.c"
@@ -23,7 +22,8 @@
 
 uint16_t x;				// hold x value of joystick
 uint16_t y;				// hold y value of joystick
-unsigned char button;	// button for blaster
+unsigned char blaster;	// button for blaster
+unsigned char select_but; //button for start
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							State Machines								   //
@@ -31,7 +31,7 @@ unsigned char button;	// button for blaster
 
 enum SM1_States { s1, read_x };
 enum SM2_States { s2, sound};
-enum SM3_States { s3, display};
+enum SM3_States { s3, display, game};
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							Read Joystick								   //
@@ -82,23 +82,23 @@ int SMTick1(int state) {
 
 int SMTick2(int state) {
 
-	button = ~PINA & 0x04;
+	blaster = ~PINA & 0x04;
 
 	switch (state) {
 		case s2:
-		if(button){
+		if(blaster){
 			state = sound;
 		}
-		else if(!button){
+		else if(!blaster){
 			state = s2;
 		}
 		break;
 
 		case sound:
-		if(button){
+		if(blaster){
 			state = s2;
 		}
-		else if(!button){
+		else if(!blaster){
 			state = s2;
 		}
 		break;
@@ -127,14 +127,21 @@ int SMTick2(int state) {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 int SMTick3(int state) {
-
+	
+	select_but = ~PINA & 0x08;
+	PORTD = 0x08;
 	switch (state) {
 		case s3:
 			state = display;
 			break;
 
 		case display:
-			state = display;
+			if(select_but){
+				state = game;
+			}
+			else if(!select_but){
+				state = display;
+			}
 			break;
 		
 		default:
@@ -147,16 +154,17 @@ int SMTick3(int state) {
 			break;
 
 		case display:
-			nokia_lcd_clear();
-			nokia_lcd_write_string("IT'S WORKING!",1);
-			nokia_lcd_set_cursor(0, 10);
-			nokia_lcd_write_string("Nice!", 3);
-			nokia_lcd_render();
-			/*
-			for (;;) {
-				_delay_ms(1000);
-			}
-			*/
+			//LCDInit();
+			//LCDClear();
+			LCDBitmap(menu);
+			for(int i = 0; i<1000; i++);
+			break;
+		
+		case game:
+			//LCDInit();
+			//LCDClear();
+			LCDChar('a');
+			for(int i = 0; i<1000; i++);
 			break;
 		
 		default: break;
@@ -178,7 +186,7 @@ int main()
 	// Period for the tasks
 	unsigned long int SMTick1_calc = 10;
 	unsigned long int SMTick2_calc = 100;
-	unsigned long int SMTick3_calc = 100;
+	unsigned long int SMTick3_calc = 10;
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
@@ -222,10 +230,13 @@ int main()
 	LCD_init();
 	PWM_on();
 	ADC_init();
-	nokia_lcd_init();
+	LCDInit();
+	
+	
 	
 	unsigned short i; // Scheduler for-loop iterator
 	while(1) {
+		
 		// Scheduler code
 		for ( i = 0; i < numTasks; i++ ) {
 			// Task is ready to tick
@@ -237,22 +248,7 @@ int main()
 			}
 			tasks[i]->elapsedTime += 1;
 		}
-		/*
-		lcd_init(&PORTD, PD0, &PORTD, PD1, &PORTD, PD2, &PORTD, PD3, &PORTD, PD4);
-		lcd_goto_xy(20,20);
-		*/
-		/*
-		 nokia_lcd_init();
-		 nokia_lcd_clear();
-		 nokia_lcd_write_string("IT'S WORKING!",1);
-		 nokia_lcd_set_cursor(0, 10);
-		 nokia_lcd_write_string("Nice!", 3);
-		 nokia_lcd_render();
-
-		 for (;;) {
-			 _delay_ms(1000);
-		 }
-		*/
+		
 		while(!TimerFlag);
 		TimerFlag = 0;
 	}
