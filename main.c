@@ -1,8 +1,8 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include "timer.h"
 #include <stdio.h>
+#include "timer.h"
 #include "bit.h"
 #include "scheduler.h"
 #include "io.c"
@@ -10,11 +10,8 @@
 #include "joystickADC.c"
 #include "pcd8544.h"
 #include "pcd8544.c"
-/*
-#include "5110.h"
-#include "5110.c"
-#include "timeout.h"
-*/
+#include "pieces.h"
+#include "pieces.c"
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							Shared Variables							   //
@@ -24,6 +21,8 @@ uint16_t x;				// hold x value of joystick
 uint16_t y;				// hold y value of joystick
 unsigned char blaster;	// button for blaster
 unsigned char select_but; //button for start
+unsigned char direction;	//will hold 1 for right, 0 for left, 2 for stationary
+unsigned char missle;	// set to 1 when missle is fired, 0 when not
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							State Machines								   //
@@ -31,7 +30,7 @@ unsigned char select_but; //button for start
 
 enum SM1_States { s1, read_x };
 enum SM2_States { s2, sound};
-enum SM3_States { s3, display, game};
+enum SM3_States { s3, display, setup, game};
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							Read Joystick								   //
@@ -61,13 +60,16 @@ int SMTick1(int state) {
 		
 		case read_x:
 		if(x == 4){
+			direction = 2;
 			PORTB = 0x00;
 		}
-		else if(x == 1){
-			PORTB = 0x04;
+		else if(x <= 2){
+			direction = 0;
+			PORTB = 0x01;
 		}
-		else if(x == 7){
-			PORTB = 0x08;
+		else if(x >= 6){
+			direction = 1;
+			PORTB = 0x02;
 		}
 		break;
 
@@ -110,12 +112,18 @@ int SMTick2(int state) {
 	
 	switch(state) {
 		case s2:
-		set_PWM(0);
-		break;
+			set_PWM(0);
+			missle = 0;		// missle set to 0 when blaster not shot
+			break;
 
 		case sound:
-		set_PWM(523.25);
-		break;
+			set_PWM(523.25);
+			missle = 1;		// missle set to 1 when blaster is fired
+			Set_up_shot();
+			Draw_shot();
+			Move_shot();
+			Draw_shot();
+			break;
 		
 		default: break;
 	}
@@ -137,34 +145,61 @@ int SMTick3(int state) {
 
 		case display:
 			if(select_but){
-				state = game;
+				state = setup;
 			}
 			else if(!select_but){
 				state = display;
 			}
 			break;
-		
+
+		case setup:
+			state = game;
+			break;
+
+		case game:
+			state = game;
+			break;
+
+
 		default:
 			state = s3;
 			break;
 	}
 	
 	switch(state) {
+		
 		case s3:
 			break;
 
 		case display:
-			//LCDInit();
-			//LCDClear();
-			LCDBitmap(menu);
+			LCDClear();
+			unsigned char *Menu = menu;
+			LCD_Full_Image(Menu);
 			for(int i = 0; i<1000; i++);
 			break;
-		
+
+		case setup:
+			LCDClear();
+			Set_up_enemy();
+			Draw_enemy();
+
+			Set_up_player();
+			Draw_player();
+			
+			/*
+			if(missle){
+				Set_up_shot();
+				Draw_shot();
+			}
+			*/
+
 		case game:
-			//LCDInit();
-			//LCDClear();
-			LCDChar('a');
-			for(int i = 0; i<1000; i++);
+			Move_enemy();
+			Draw_enemy();
+			Move_player(direction);
+			Draw_player();
+			//Move_shot();
+			Draw_shot();
 			break;
 		
 		default: break;
@@ -184,9 +219,9 @@ int main()
 	DDRD = 0xFF; PORTD = 0x00;
 	
 	// Period for the tasks
-	unsigned long int SMTick1_calc = 10;
-	unsigned long int SMTick2_calc = 100;
-	unsigned long int SMTick3_calc = 10;
+	unsigned long int SMTick1_calc = 60;
+	unsigned long int SMTick2_calc = 250;
+	unsigned long int SMTick3_calc = 250;
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
