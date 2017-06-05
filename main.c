@@ -85,6 +85,7 @@ int SMTick1(int state) {
 int SMTick2(int state) {
 
 	blaster = ~PINA & 0x04;
+	unsigned char shot_hit = 1;
 
 	switch (state) {
 		case s2:
@@ -121,8 +122,11 @@ int SMTick2(int state) {
 			missle = 1;		// missle set to 1 when blaster is fired
 			Set_up_shot();
 			Draw_shot();
-			Move_shot();
-			Draw_shot();
+			while(shot_hit == 1){
+				shot_hit = Move_shot();
+				Draw_shot();
+			}
+			
 			break;
 		
 		default: break;
