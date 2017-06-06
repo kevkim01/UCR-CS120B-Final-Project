@@ -30,7 +30,7 @@ unsigned char shot_fired;	//set to 0 when missile makes contact with an enemy
 
 enum SM1_States { s1, read_x };
 enum SM2_States { s2, shot };
-enum SM3_States { s3, display, setup, game };
+enum SM3_States { s3, display, setup, game, boss_setup, boss_battle };
 
 enum SM4_States { s4, move };
 	
@@ -146,6 +146,8 @@ int SMTick3(int state) {
 	
 	select_but = ~PINA & 0x08;
 	PORTD = 0x08;
+	unsigned char killed_enemies;
+	
 	switch (state) {
 		case s3:
 			state = display;
@@ -165,9 +167,22 @@ int SMTick3(int state) {
 			break;
 
 		case game:
-			state = game;
+			killed_enemies = Check_enemies();
+			if(killed_enemies == 8){
+				state = boss_setup;
+			}
+			else{
+				state = game;
+			}
 			break;
-
+			
+		case boss_setup:
+			state = boss_battle;
+			break;
+			
+		case boss_battle:
+			state = boss_battle;
+			break;
 
 		default:
 			state = s3;
@@ -197,6 +212,21 @@ int SMTick3(int state) {
 		case game:
 			Move_enemy();
 			Draw_enemy();
+			Move_player(direction);
+			Draw_player();
+			break;
+		
+		case boss_setup:
+			Draw_enemy();
+			Set_up_boss();
+			Draw_boss();
+			Move_player(direction);
+			Draw_player();
+			break;
+			
+		case boss_battle:
+			Move_boss();
+			Draw_boss();
 			Move_player(direction);
 			Draw_player();
 			break;
