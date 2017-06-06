@@ -23,5 +23,9 @@ void Clear_player();
 void Draw_player();
 void Move_player(unsigned char direction);
 
+void Set_up_boss();
+void Clear_boss();
+void Draw_boss();
+void Move_boss();
 
 #endif
