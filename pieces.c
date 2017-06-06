@@ -17,6 +17,7 @@ struct Sprite Enemy_Row1[4];		// row of small enemies
 struct Sprite Enemy_Row2[4];		// 2nd row of small enemies
 struct Sprite user;					// single ship controlled by player
 struct Sprite player_shot;			// shot fired by user
+struct Sprite Boss;					// final boss
 
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -114,6 +115,19 @@ void Set_up_enemy(){			//sets up a row of small enemies
 	}
 }
 
+unsigned char Check_enemies(){
+	unsigned char count=0;
+	for(int i = 0; i < 4; ++i){
+		if(Enemy_Row1[i].life_pts == 0){
+			count +=1;
+		}
+		if(Enemy_Row2[i].life_pts == 0){
+			count +=1;
+		}
+	}
+	return count;
+}
+
 void Clear_enemies(){
 	for(int i = 0; i < 4; ++i){
 		//if(Enemy_Row1[i].life_pts == 0){		// dont draw dead enemies
@@ -151,8 +165,6 @@ void Draw_enemy(){
 	}
 	return;
 }
-// added alternating movement between rows
-// to revert just eliminate if with enemy_row2 as conditional
 
 unsigned char dir = 0;		// 0 for left, 1 for right
 void Move_enemy(){
@@ -252,6 +264,82 @@ void Move_player(unsigned char direction){
 				user.x_pos = x - dist;
 		}
 		else{return;}
+	}
+	return;
+}
+
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+//							boss sprite 								//
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
+
+void Set_up_boss(){			//sets up a row of small enemies
+	Boss.x_pos = 21;
+	Boss.y_pos = 0;
+	Boss.bmp = boss;
+	Boss.life_pts = 10;
+	Boss.sz = sizeof(boss);
+}
+
+/*
+unsigned char Check_enemies(){
+	unsigned char count=0;
+	for(int i = 0; i < 4; ++i){
+		if(Enemy_Row1[i].life_pts == 0){
+			count +=1;
+		}
+		if(Enemy_Row2[i].life_pts == 0){
+			count +=1;
+		}
+	}
+	return count;
+}
+*/
+
+void Clear_boss(){
+	LCD_Clear_Sprite(Boss.x_pos, Boss.y_pos, Boss.bmp, Boss.sz);
+	for(int i = 0; i<1000; i++);
+	return;
+}
+
+void Draw_boss(){
+	if(Boss.life_pts > 0){		// dont draw dead enemies
+		LCD_Sprite(Boss.x_pos, Boss.y_pos, Boss.bmp, Boss.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(Boss.x_pos, Boss.y_pos, Boss.bmp, Boss.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	return;
+}
+
+unsigned char dir1 = 0;		// 0 for left, 1 for right
+
+void Move_boss(){
+	
+	Clear_boss();
+	unsigned char x;
+
+	if(dir1 == 1){			// 1 =  move right
+		if(Boss.x_pos + 1 < LCD_WIDTH-43){
+			x = Boss.x_pos;
+			Boss.x_pos = x + 1;
+		}
+		else{
+			dir1 = 0;
+			return;
+		}
+	}
+	else if(dir1 == 0){	// 0 = move left
+		if(Boss.x_pos - 1 > 0){
+			x = Boss.x_pos;
+			Boss.x_pos = x - 1;
+		}
+		else{
+			dir1 = 1;
+			return;
+		}
 	}
 	return;
 }
