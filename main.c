@@ -22,16 +22,18 @@ uint16_t y;				// hold y value of joystick
 unsigned char blaster;	// button for blaster
 unsigned char select_but; //button for start
 unsigned char direction;	//will hold 1 for right, 0 for left, 2 for stationary
-unsigned char missle;	// set to 1 when missle is fired, 0 when not
+unsigned char shot_fired;	//set to 0 when missile makes contact with an enemy
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							State Machines								   //
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 enum SM1_States { s1, read_x };
-enum SM2_States { s2, sound};
-enum SM3_States { s3, display, setup, game};
+enum SM2_States { s2, shot };
+enum SM3_States { s3, display, setup, game };
 
+enum SM4_States { s4, move };
+	
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							Read Joystick								   //
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -39,7 +41,6 @@ enum SM3_States { s3, display, setup, game};
 int SMTick1(int state) {
 
 	x = JoyStickY_ADC(SetADC_Ch(1));	// inverted because board orientation
-	//y = JoyStickX_ADC(SetADC_Ch(0));	// inverted because board orientation
 
 	switch (state) {
 		case s1:
@@ -85,19 +86,18 @@ int SMTick1(int state) {
 int SMTick2(int state) {
 
 	blaster = ~PINA & 0x04;
-	unsigned char shot_hit = 1;
 
 	switch (state) {
 		case s2:
 		if(blaster){
-			state = sound;
+			state = shot;
 		}
 		else if(!blaster){
 			state = s2;
 		}
 		break;
 
-		case sound:
+		case shot:
 		if(blaster){
 			state = s2;
 		}
@@ -114,18 +114,22 @@ int SMTick2(int state) {
 	switch(state) {
 		case s2:
 			set_PWM(0);
-			missle = 0;		// missle set to 0 when blaster not shot
+			//shot_fired =0;
 			break;
 
-		case sound:
+		case shot:
 			set_PWM(523.25);
-			missle = 1;		// missle set to 1 when blaster is fired
 			Set_up_shot();
 			Draw_shot();
+			shot_fired = 1;
+			
+			//Move_shot();
+			/*
 			while(shot_hit == 1){
 				shot_hit = Move_shot();
 				Draw_shot();
 			}
+			*/
 			
 			break;
 		
@@ -190,26 +194,65 @@ int SMTick3(int state) {
 			Set_up_player();
 			Draw_player();
 			
-			/*
-			if(missle){
-				Set_up_shot();
-				Draw_shot();
-			}
-			*/
-
 		case game:
 			Move_enemy();
 			Draw_enemy();
 			Move_player(direction);
 			Draw_player();
-			//Move_shot();
-			Draw_shot();
 			break;
 		
 		default: break;
 	}
 	return state;
 }
+
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+//							Missile move								   //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+int SMTick4(int state) {
+	
+	unsigned char hit = 1;		// 0  when bullet is dead
+	switch (state) {
+		case s4:
+			if(shot_fired){
+				state = move;
+			}
+			else{
+				state = s4;
+			}
+			break;
+
+		case move:
+			if(shot_fired){
+				state = move;
+			}
+			else{
+				state = s4;
+			}
+			break;
+		
+		default:
+			state = s4;
+			break;
+	}
+	
+	switch(state) {
+		case s4: break;
+		
+		case move:
+			hit = Move_shot();
+			if(hit ==0){
+				shot_fired = 0;
+			}
+			break;
+
+		default: break;
+	}
+	return state;
+}
+
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							MAIN FUNCTION								   //
@@ -223,14 +266,16 @@ int main()
 	DDRD = 0xFF; PORTD = 0x00;
 	
 	// Period for the tasks
-	unsigned long int SMTick1_calc = 60;
-	unsigned long int SMTick2_calc = 250;
-	unsigned long int SMTick3_calc = 250;
+	unsigned long int SMTick1_calc = 60;		// joystick
+	unsigned long int SMTick2_calc = 400;		// blaster
+	unsigned long int SMTick3_calc = 250;		// display
+	unsigned long int SMTick4_calc = 180;		// missile move
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
 	tmpGCD = findGCD(SMTick1_calc, SMTick2_calc);
 	tmpGCD = findGCD(tmpGCD, SMTick3_calc);
+	tmpGCD = findGCD(tmpGCD, SMTick4_calc);
 	
 	//Greatest common divisor for all tasks or smallest time unit for tasks.
 	unsigned long int GCD = tmpGCD;
@@ -239,10 +284,11 @@ int main()
 	unsigned long int SMTick1_period = SMTick1_calc/GCD;
 	unsigned long int SMTick2_period = SMTick2_calc/GCD;
 	unsigned long int SMTick3_period = SMTick3_calc/GCD;
+	unsigned long int SMTick4_period = SMTick4_calc/GCD;
 	
 	//Declare an array of tasks
-	static task task1, task2, task3;
-	task *tasks[] = { &task1, &task2, &task3};
+	static task task1, task2, task3, task4;
+	task *tasks[] = { &task1, &task2, &task3, &task4};
 	const unsigned short numTasks = sizeof(tasks)/sizeof(task*);
 	
 	// Task 1
@@ -262,6 +308,12 @@ int main()
 	task3.period = SMTick3_period;//Task Period.
 	task3.elapsedTime = SMTick3_period;//Task current elapsed time.
 	task3.TickFct = &SMTick3;//Function pointer for the tick.
+	
+	// Task 4
+	task4.state = -1;//Task initial state.
+	task4.period = SMTick4_period;//Task Period.
+	task4.elapsedTime = SMTick4_period;//Task current elapsed time.
+	task4.TickFct = &SMTick4;//Function pointer for the tick.
 
 	// Set the timer and turn it on
 	TimerSet(GCD);
