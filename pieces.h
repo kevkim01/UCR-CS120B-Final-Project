@@ -28,4 +28,9 @@ void Clear_boss();
 void Draw_boss();
 void Move_boss();
 
+void Set_up_boss_shot();
+void Clear_boss_shot();
+void Draw_boss_shot();
+unsigned char Move_boss_shot();
+
 #endif
