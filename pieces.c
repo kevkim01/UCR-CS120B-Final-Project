@@ -15,13 +15,18 @@ struct Sprite{
 
 struct Sprite Enemy_Row1[4];		// row of small enemies
 struct Sprite Enemy_Row2[4];		// 2nd row of small enemies
-struct Sprite user;					// single ship controlled by player
-struct Sprite player_shot;			// shot fired by user
-struct Sprite Boss;					// final boss
 
+struct Sprite Boss_top;				// final boss top half
+struct Sprite Boss_bot;				// final boss lower half
+
+struct Sprite user;					// single ship controlled by player
+
+struct Sprite player_shot;			// shot fired by user
+struct Sprite boss_shot1;			// shot fired by the boss (left)
+struct Sprite boss_shot2;			// shot fired by the boss (right)
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
-//							shot fired 									//
+//							player shot									//
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
 void Set_up_shot(){
@@ -31,6 +36,7 @@ void Set_up_shot(){
 	player_shot.life_pts = 1;
 	player_shot.sz = sizeof(p_shot);
 }
+
 
 void Clear_shot(){
 	LCD_Clear_Sprite(player_shot.x_pos, player_shot.y_pos, player_shot.bmp, player_shot.sz);
@@ -73,25 +79,92 @@ unsigned char Move_shot(){
 			player_shot.life_pts = 0;
 			return 0;
 		}
+		else if(player_shot.y_pos == Boss_bot.y_pos + 1 && player_shot.x_pos > Boss_bot.x_pos && player_shot.x_pos < (Boss_bot.x_pos +35) && Boss_bot.life_pts > 0){
+			Boss_bot.life_pts -= 1;
+			player_shot.life_pts = 0;
+			return 0;
+		}
 		else if(y -1 < 0){		// out of bounds
 			player_shot.life_pts = 0;
 			return 0;
 		}
-		//else{
-			
-			//continue;
-		//}
-		
 	}
 	player_shot.y_pos = y - 1;
 	Draw_shot();
 	for(int i = 0; i<1000; i++);
-	//player_shot.y_pos = y-1;
 	return 1;
 }
 
 
+void Set_up_boss_shot(){
+	// change p shot to e shot later
+	boss_shot1.x_pos = Boss_bot.x_pos + 10;
+	boss_shot1.y_pos = 2;
+	boss_shot1.bmp = p_shot;
+	boss_shot1.life_pts = 1;
+	boss_shot1.sz = sizeof(p_shot);
 
+	boss_shot2.x_pos = Boss_bot.x_pos + 31;
+	boss_shot2.y_pos = 2;
+	boss_shot2.bmp = p_shot;
+	boss_shot2.life_pts = 1;
+	boss_shot2.sz = sizeof(p_shot);
+}
+
+void Clear_boss_shot(){
+	LCD_Clear_Sprite(boss_shot1.x_pos, boss_shot1.y_pos, boss_shot1.bmp, boss_shot1.sz);
+	for(int i = 0; i<1000; i++);
+	LCD_Clear_Sprite(boss_shot2.x_pos, boss_shot2.y_pos, boss_shot2.bmp, boss_shot2.sz);
+	for(int i = 0; i<1000; i++);
+	return;
+}
+
+void Draw_boss_shot(){
+	if(boss_shot1.life_pts > 0){
+		LCD_Sprite(boss_shot1.x_pos, boss_shot1.y_pos, boss_shot1.bmp, boss_shot1.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(boss_shot1.x_pos, boss_shot1.y_pos, boss_shot1.bmp, boss_shot1.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	if(boss_shot2.life_pts > 0){
+		LCD_Sprite(boss_shot2.x_pos, boss_shot2.y_pos, boss_shot2.bmp, boss_shot2.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(boss_shot2.x_pos, boss_shot2.y_pos, boss_shot2.bmp, boss_shot2.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	return;
+}
+
+unsigned char Move_boss_shot(){
+
+	Clear_boss_shot();
+
+	if(boss_shot1.y_pos == user.y_pos - 1 && boss_shot1.x_pos > user.x_pos && boss_shot1.x_pos < (user.x_pos + 13) && user.life_pts > 0){
+		user.life_pts -= 1;
+		boss_shot1.life_pts = 0;
+		return 0;		// return 0 if left shot dead
+	}
+	else if(boss_shot2.y_pos == user.y_pos - 1 && boss_shot2.x_pos > user.x_pos && boss_shot2.x_pos < (user.x_pos + 13) && user.life_pts > 0){
+		user.life_pts -= 1;
+		boss_shot2.life_pts = 0;
+		return 1;		// return 1 if right shot dead
+	}
+	else if(boss_shot1.y_pos + 1 > 5 || boss_shot2.y_pos + 1 > 5){		// out of bounds
+		boss_shot1.life_pts = 0;
+		boss_shot2.life_pts = 0;
+		return 2;		// return 2 if out of bounds
+	}
+
+	boss_shot1.y_pos += 1;
+	boss_shot2.y_pos += 1;
+	Draw_boss_shot();
+	for(int i = 0; i<1000; i++);
+	return 3;			// return 4 if both shots are alive
+}
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 //							small enemy									//
@@ -228,7 +301,7 @@ void Set_up_player(){
 	user.x_pos = 35;
 	user.y_pos = 5;
 	user.bmp = player;
-	user.life_pts = 5;
+	user.life_pts = 1;
 	user.sz = sizeof(player);
 }
 
@@ -240,8 +313,15 @@ void Clear_player(){
 
 void Draw_player(){
 	
-	LCD_Sprite(user.x_pos, user.y_pos, user.bmp, user.sz);
-	for(int i = 0; i<1000; i++);
+	if(user.life_pts > 0){
+		LCD_Sprite(user.x_pos, user.y_pos, user.bmp, user.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(user.x_pos, user.y_pos, user.bmp, user.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	
 	return;
 }
 
@@ -274,11 +354,17 @@ void Move_player(unsigned char direction){
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
 void Set_up_boss(){			//sets up a row of small enemies
-	Boss.x_pos = 21;
-	Boss.y_pos = 0;
-	Boss.bmp = boss;
-	Boss.life_pts = 10;
-	Boss.sz = sizeof(boss);
+	Boss_top.x_pos = 21;
+	Boss_top.y_pos = 0;
+	Boss_top.bmp = boss_top;
+	Boss_top.life_pts = 10;
+	Boss_top.sz = sizeof(boss_top);
+
+	Boss_bot.x_pos = 21;
+	Boss_bot.y_pos = 1;
+	Boss_bot.bmp = boss_bot;
+	Boss_bot.life_pts = 10;
+	Boss_bot.sz = sizeof(boss_bot);
 }
 
 /*
@@ -297,18 +383,24 @@ unsigned char Check_enemies(){
 */
 
 void Clear_boss(){
-	LCD_Clear_Sprite(Boss.x_pos, Boss.y_pos, Boss.bmp, Boss.sz);
+	LCD_Clear_Sprite(Boss_top.x_pos, Boss_top.y_pos, Boss_top.bmp, Boss_top.sz);
+	for(int i = 0; i<1000; i++);
+	LCD_Clear_Sprite(Boss_bot.x_pos, Boss_bot.y_pos, Boss_bot.bmp, Boss_bot.sz);
 	for(int i = 0; i<1000; i++);
 	return;
 }
 
 void Draw_boss(){
-	if(Boss.life_pts > 0){		// dont draw dead enemies
-		LCD_Sprite(Boss.x_pos, Boss.y_pos, Boss.bmp, Boss.sz);
+	if(Boss_bot.life_pts > 0){		// dont draw dead enemies
+		LCD_Sprite(Boss_top.x_pos, Boss_top.y_pos, Boss_top.bmp, Boss_top.sz);
+		for(int i = 0; i<1000; i++);
+		LCD_Sprite(Boss_bot.x_pos, Boss_bot.y_pos, Boss_bot.bmp, Boss_bot.sz);
 		for(int i = 0; i<1000; i++);
 	}
 	else{
-		LCD_Clear_Sprite(Boss.x_pos, Boss.y_pos, Boss.bmp, Boss.sz);
+		LCD_Clear_Sprite(Boss_top.x_pos, Boss_top.y_pos, Boss_top.bmp, Boss_top.sz);
+		for(int i = 0; i<1000; i++);
+		LCD_Clear_Sprite(Boss_bot.x_pos, Boss_bot.y_pos, Boss_bot.bmp, Boss_bot.sz);
 		for(int i = 0; i<1000; i++);
 	}
 	return;
@@ -322,9 +414,10 @@ void Move_boss(){
 	unsigned char x;
 
 	if(dir1 == 1){			// 1 =  move right
-		if(Boss.x_pos + 1 < LCD_WIDTH-43){
-			x = Boss.x_pos;
-			Boss.x_pos = x + 1;
+		if(Boss_top.x_pos + 2 < LCD_WIDTH-43){
+			x = Boss_top.x_pos;
+			Boss_top.x_pos = x + 2;
+			Boss_bot.x_pos = x + 2;
 		}
 		else{
 			dir1 = 0;
@@ -332,9 +425,10 @@ void Move_boss(){
 		}
 	}
 	else if(dir1 == 0){	// 0 = move left
-		if(Boss.x_pos - 1 > 0){
-			x = Boss.x_pos;
-			Boss.x_pos = x - 1;
+		if(Boss_top.x_pos - 2 > 0){
+			x = Boss_top.x_pos;
+			Boss_top.x_pos = x - 2;
+			Boss_bot.x_pos = x - 2;
 		}
 		else{
 			dir1 = 1;
