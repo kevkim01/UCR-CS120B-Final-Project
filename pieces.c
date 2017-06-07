@@ -1,6 +1,5 @@
 #include "pieces.h"
 
-
 struct Sprite{
 	unsigned char x_pos;			// current x position
 	unsigned char y_pos;			// current y position
@@ -70,11 +69,17 @@ unsigned char Move_shot(){
 		x2 = Enemy_Row2[i].x_pos;
 
 		if(player_shot.y_pos == Enemy_Row1[i].y_pos + 1 && player_shot.x_pos > x1 && player_shot.x_pos < (x1 + 16) && Enemy_Row1[i].life_pts > 0){
+			if(i == 1){
+				user.life_pts += 1;
+			}
 			Enemy_Row1[i].life_pts = 0;
 			player_shot.life_pts = 0;
 			return 0;
 		}
 		else if(player_shot.y_pos == Enemy_Row2[i].y_pos + 1 && player_shot.x_pos > x2 && player_shot.x_pos < (x2 + 16) && Enemy_Row2[i].life_pts > 0){
+			if(i == 3){
+				user.life_pts += 1;
+			}
 			Enemy_Row2[i].life_pts = 0;
 			player_shot.life_pts = 0;
 			return 0;
@@ -143,12 +148,12 @@ unsigned char Move_boss_shot(){
 
 	Clear_boss_shot();
 
-	if(boss_shot1.y_pos == user.y_pos - 1 && boss_shot1.x_pos > user.x_pos && boss_shot1.x_pos < (user.x_pos + 13) && user.life_pts > 0){
+	if(boss_shot1.y_pos == user.y_pos - 1 && boss_shot1.x_pos > user.x_pos && boss_shot1.x_pos < (user.x_pos + 13) && user.life_pts > 0 && boss_shot1.life_pts > 0){
 		user.life_pts -= 1;
 		boss_shot1.life_pts = 0;
 		return 0;		// return 0 if left shot dead
 	}
-	else if(boss_shot2.y_pos == user.y_pos - 1 && boss_shot2.x_pos > user.x_pos && boss_shot2.x_pos < (user.x_pos + 13) && user.life_pts > 0){
+	else if(boss_shot2.y_pos == user.y_pos - 1 && boss_shot2.x_pos > user.x_pos && boss_shot2.x_pos < (user.x_pos + 13) && user.life_pts > 0 && boss_shot2.life_pts > 0){
 		user.life_pts -= 1;
 		boss_shot2.life_pts = 0;
 		return 1;		// return 1 if right shot dead
@@ -171,20 +176,33 @@ unsigned char Move_boss_shot(){
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
 void Set_up_enemy(){			//sets up a row of small enemies
+
 	for(int i = 0; i < 4; ++i){
 		Enemy_Row1[i].x_pos = (20*i)+ 4;
 		Enemy_Row1[i].y_pos = 0;
-		Enemy_Row1[i].bmp = small_enemy;
 		Enemy_Row1[i].life_pts = 1;
-		Enemy_Row1[i].sz = sizeof(small_enemy);
-
+		
+		if(i == 1){
+			Enemy_Row1[i].bmp = enemy2;
+			Enemy_Row1[i].sz = sizeof(enemy2);
+		}
+		else{
+			Enemy_Row1[i].bmp = small_enemy;
+			Enemy_Row1[i].sz = sizeof(small_enemy);
+		}
 		
 		Enemy_Row2[i].x_pos = (20*i)+ 4;
 		Enemy_Row2[i].y_pos = 1;
-		Enemy_Row2[i].bmp = small_enemy;
 		Enemy_Row2[i].life_pts = 1;
-		Enemy_Row2[i].sz = sizeof(small_enemy);
-		
+
+		if(i == 3){
+			Enemy_Row2[i].bmp = enemy2;
+			Enemy_Row2[i].sz = sizeof(enemy2);
+		}
+		else{
+			Enemy_Row2[i].bmp = small_enemy;
+			Enemy_Row2[i].sz = sizeof(small_enemy);
+		}
 	}
 }
 
@@ -305,6 +323,22 @@ void Set_up_player(){
 	user.sz = sizeof(player);
 }
 
+unsigned char Check_player(){
+	if(user.life_pts == 0){
+		return 0;
+	}
+	else if(user.life_pts == 1){
+		return 1;
+	}
+	else if(user.life_pts == 2){
+		return 2;
+	}
+	else if(user.life_pts == 3){
+		return 3;
+	}
+	return 4;
+}
+
 void Clear_player(){
 	LCD_Clear_Sprite(user.x_pos, user.y_pos, user.bmp, user.sz);
 	for(int i = 0; i<1000; i++);
@@ -367,20 +401,13 @@ void Set_up_boss(){			//sets up a row of small enemies
 	Boss_bot.sz = sizeof(boss_bot);
 }
 
-/*
-unsigned char Check_enemies(){
-	unsigned char count=0;
-	for(int i = 0; i < 4; ++i){
-		if(Enemy_Row1[i].life_pts == 0){
-			count +=1;
-		}
-		if(Enemy_Row2[i].life_pts == 0){
-			count +=1;
-		}
+
+unsigned char Check_boss(){
+	if(Boss_bot.life_pts == 0){
+		return 0;
 	}
-	return count;
+	return 1;
 }
-*/
 
 void Clear_boss(){
 	LCD_Clear_Sprite(Boss_top.x_pos, Boss_top.y_pos, Boss_top.bmp, Boss_top.sz);
