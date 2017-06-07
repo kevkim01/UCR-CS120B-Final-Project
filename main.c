@@ -18,13 +18,15 @@
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 uint16_t x;				// hold x value of joystick
-uint16_t y;				// hold y value of joystick
+//uint16_t y;				// hold y value of joystick
 unsigned char game_start = 0;	// start game
 unsigned char blaster;	// button for blaster
 unsigned char select_but; //button for start
 unsigned char direction;	//will hold 1 for right, 0 for left, 2 for stationary
 unsigned char shot_fired;	//set to 0 when missile makes contact with an enemy
 unsigned char fire;			// used to signal when boss shoots
+unsigned char win;					// holds value of win or loss
+unsigned char count;				// counts until game reset
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 //							State Machines								   //
@@ -32,7 +34,7 @@ unsigned char fire;			// used to signal when boss shoots
 
 enum SM1_States { s1, read_x };		// for reading the joystick analog values
 enum SM2_States { s2, shot };		// for reading when the blaster button is pushed
-enum SM3_States { s3, display, setup, game, boss_setup, boss_battle };		// displays the game: spawn and boss
+enum SM3_States { s3, display, setup, game, warn, boss_setup, boss_battle, wait_end, end_game };		// displays the game: spawn and boss
 enum SM4_States { s4, move };		// responsible for propagation of user bullet
 enum SM5_States { s5, travel };		// responsible for auto firing and propagation of boss bullets
 	
@@ -64,15 +66,12 @@ int SMTick1(int state) {
 		case read_x:
 		if(x == 4){
 			direction = 2;
-			PORTB = 0x00;
 		}
 		else if(x <= 2){
 			direction = 0;
-			PORTB = 0x01;
 		}
 		else if(x >= 6){
 			direction = 1;
-			PORTB = 0x02;
 		}
 		break;
 
@@ -144,8 +143,10 @@ int SMTick3(int state) {
 	
 	select_but = ~PINA & 0x08;
 	PORTD = 0x08;
-	unsigned char killed_enemies;
-	
+	unsigned char killed_enemies;		// checks to see when all pawns eliminated
+	unsigned char killed_boss;			// checks to see when the boss is eliminated
+	unsigned char killed_player;		// checks to see when the player is eliminated
+
 	switch (state) {
 		case s3:
 			state = display;
@@ -166,20 +167,56 @@ int SMTick3(int state) {
 
 		case game:
 			killed_enemies = Check_enemies();
-			if(killed_enemies == 8){
-				state = boss_setup;
+			killed_player = Check_player();
+
+			if(killed_enemies == 8){		// if kill all pawns then go to boss fight
+				state = boss_setup;				// changed
 			}
-			else{
+
+			else if(killed_player == 0){	// if player is killed then go to end game sequence
+				win = 0;
+				state = wait_end;
+			}
+			else{							// else keep fighting pawns
 				state = game;
 			}
 			break;
-			
+
 		case boss_setup:
 			state = boss_battle;
 			break;
 			
 		case boss_battle:
-			state = boss_battle;
+			killed_boss = Check_boss();
+			killed_player = Check_player();
+
+			if(killed_boss == 0){			// if boss is dead then go to end game sequence
+				win = 1;
+				state = wait_end;
+			}
+
+			else if(killed_player == 0){	// if player is killed then go to end game sequence
+				win = 0;
+				state = wait_end;
+			}
+
+			else{
+				state = boss_battle;
+			}
+			break;
+
+		case wait_end:
+			state = end_game;
+			break;
+
+		case end_game:
+			if(count < 15){
+				state = end_game;
+			}
+			else{
+				count = 0;
+				state = s3;
+			}
 			break;
 
 		default:
@@ -200,6 +237,9 @@ int SMTick3(int state) {
 			break;
 
 		case setup:
+			killed_player = Check_player();
+			PORTB = 0x00;
+
 			game_start = 1;
 			LCDClear();
 			Set_up_enemy();
@@ -208,13 +248,27 @@ int SMTick3(int state) {
 			Draw_player();
 			
 		case game:
+			
+			killed_player = Check_player();
+			if(killed_player == 0){PORTB = 0x00;}
+			else if(killed_player == 1){PORTB = 0x01;}
+			else if(killed_player == 2){PORTB = 0x03;}
+			else if(killed_player == 3){PORTB = 0x07;}
+
 			Move_enemy();
 			Draw_enemy();
 			Move_player(direction);
 			Draw_player();
 			break;
-		
+
 		case boss_setup:
+
+			killed_player = Check_player();
+			if(killed_player == 0){PORTB = 0x00;}
+			else if(killed_player == 1){PORTB = 0x01;}
+			else if(killed_player == 2){PORTB = 0x03;}
+			else if(killed_player == 3){PORTB = 0x07;}
+
 			Draw_enemy();
 			Set_up_boss();
 			Draw_boss();
@@ -223,12 +277,44 @@ int SMTick3(int state) {
 			break;
 			
 		case boss_battle:
+			
+			killed_player = Check_player();
+			if(killed_player == 0){PORTB = 0x00;}
+			else if(killed_player == 1){PORTB = 0x01;}
+			else if(killed_player == 2){PORTB = 0x03;}
+			else if(killed_player == 3){PORTB = 0x07;}
+
 			fire = 1;
 			Move_boss();
 			Draw_boss();
 			Move_player(direction);
 			Draw_player();
 			break;
+
+		case wait_end:
+			PORTB = 0x00;
+			fire = 0;
+			game_start = 0;
+			LCDClear();
+			break;
+
+		case end_game:
+			PORTB = 0x00;
+			LCDClear();
+			if(win == 1){
+				gotoXY(0,0);
+				unsigned char *vic = victory;
+				LCD_Full_Image(vic);
+				for(int i = 0; i<1000; i++);
+			}
+
+			else if(win == 0){
+				gotoXY(0,0);
+				unsigned char *def = defeat;
+				LCD_Full_Image(def);
+				for(int i = 0; i<1000; i++);
+			}
+			count++;
 		
 		default: break;
 	}
@@ -358,7 +444,7 @@ int main()
 	unsigned long int SMTick2_calc = 400;		// blaster
 	unsigned long int SMTick3_calc = 250;		// display
 	unsigned long int SMTick4_calc = 180;		// missile move
-	unsigned long int SMTick5_calc = 800;		// boss missile move
+	unsigned long int SMTick5_calc = 400;		// boss missile move
 	
 	//Calculating GCD
 	unsigned long int tmpGCD = 1;
