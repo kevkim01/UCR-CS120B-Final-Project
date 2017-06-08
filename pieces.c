@@ -3,7 +3,7 @@
 struct Sprite{
 	unsigned char x_pos;			// current x position
 	unsigned char y_pos;			// current y position
-	const unsigned char *bmp;		// image 
+	const unsigned char *bmp;		// image
 	unsigned char life_pts;			// the life points of the sprite
 	unsigned char sz;
 };
@@ -23,6 +23,10 @@ struct Sprite user;					// single ship controlled by player
 struct Sprite player_shot;			// shot fired by user
 struct Sprite boss_shot1;			// shot fired by the boss (left)
 struct Sprite boss_shot2;			// shot fired by the boss (right)
+
+struct Sprite pawn_shot1;
+struct Sprite pawn_shot2;
+struct Sprite pawn_shot3;
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 //							player shot									//
@@ -171,6 +175,154 @@ unsigned char Move_boss_shot(){
 	return 3;			// return 4 if both shots are alive
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void Set_up_pawn_shot1(){
+	pawn_shot1.x_pos = Enemy_Row1[1].x_pos + 8;
+	pawn_shot1.y_pos = 1;
+	pawn_shot1.bmp = e_shot;
+	pawn_shot1.life_pts = 1;
+	pawn_shot1.sz = sizeof(e_shot);
+}
+
+void Set_up_pawn_shot2(){
+	pawn_shot2.x_pos = Enemy_Row2[0].x_pos + 8;
+	pawn_shot2.y_pos = 2;
+	pawn_shot2.bmp = e_shot;
+	pawn_shot2.life_pts = 1;
+	pawn_shot2.sz = sizeof(e_shot);
+}
+
+void Set_up_pawn_shot3(){
+	pawn_shot3.x_pos = Enemy_Row2[3].x_pos + 8;
+	pawn_shot3.y_pos = 2;
+	pawn_shot3.bmp = e_shot;
+	pawn_shot3.life_pts = 1;
+	pawn_shot3.sz = sizeof(e_shot);
+}
+
+void Clear_pawn_shot1(){
+	LCD_Clear_Sprite(pawn_shot1.x_pos, pawn_shot1.y_pos, pawn_shot1.bmp, pawn_shot1.sz);
+	for(int i = 0; i<1000; i++);
+	return;
+}
+void Clear_pawn_shot2(){
+	LCD_Clear_Sprite(pawn_shot2.x_pos, pawn_shot2.y_pos, pawn_shot2.bmp, pawn_shot2.sz);
+	for(int i = 0; i<1000; i++);
+	return;
+}
+void Clear_pawn_shot3(){
+	LCD_Clear_Sprite(pawn_shot3.x_pos, pawn_shot3.y_pos, pawn_shot3.bmp, pawn_shot3.sz);
+	for(int i = 0; i<1000; i++);
+	return;
+}
+
+void Draw_pawn_shot1(){
+	if(pawn_shot1.life_pts > 0){
+		LCD_Sprite(pawn_shot1.x_pos, pawn_shot1.y_pos, pawn_shot1.bmp, pawn_shot1.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(pawn_shot1.x_pos, pawn_shot1.y_pos, pawn_shot1.bmp, pawn_shot1.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	return;
+}
+void Draw_pawn_shot2(){
+	if(pawn_shot2.life_pts > 0){
+		LCD_Sprite(pawn_shot2.x_pos, pawn_shot2.y_pos, pawn_shot2.bmp, pawn_shot2.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(pawn_shot2.x_pos, pawn_shot2.y_pos, pawn_shot2.bmp, pawn_shot2.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	return;
+}
+void Draw_pawn_shot3(){
+	if(pawn_shot3.life_pts > 0){
+		LCD_Sprite(pawn_shot3.x_pos, pawn_shot3.y_pos, pawn_shot3.bmp, pawn_shot3.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	else{
+		LCD_Clear_Sprite(pawn_shot3.x_pos, pawn_shot3.y_pos, pawn_shot3.bmp, pawn_shot3.sz);
+		for(int i = 0; i<1000; i++);
+	}
+	return;
+}
+
+unsigned char Move_pawn_shot1(){
+	Clear_pawn_shot1();
+	if(pawn_shot1.y_pos == user.y_pos - 1 && pawn_shot1.x_pos > user.x_pos && pawn_shot1.x_pos < (user.x_pos + 13) && user.life_pts > 0 && pawn_shot1.life_pts > 0){
+		user.life_pts -= 1;
+		pawn_shot1.life_pts = 0;
+		return 0;		// return 0 if shot from row 1[1] dead
+	}
+	else if(pawn_shot1.y_pos + 1 > 5){
+		pawn_shot1.life_pts = 0;
+		return 0;
+	}
+	pawn_shot1.y_pos += 1;
+	Draw_pawn_shot1();
+	for(int i = 0; i<1000; i++);
+	return 1;
+}
+
+unsigned char Move_pawn_shot2(){
+	Clear_pawn_shot2();
+	if(pawn_shot2.y_pos == user.y_pos - 1 && pawn_shot2.x_pos > user.x_pos && pawn_shot2.x_pos < (user.x_pos + 13) && user.life_pts > 0 && pawn_shot2.life_pts > 0){
+		user.life_pts -= 1;
+		pawn_shot2.life_pts = 0;
+		return 0;		// return 0 if shot from row 1[1] dead
+	}
+	else if(pawn_shot2.y_pos + 1 >5){
+		pawn_shot2.life_pts = 0;
+		return 0;
+	}
+	pawn_shot2.y_pos += 1;
+	Draw_pawn_shot2();
+	for(int i = 0; i<1000; i++);
+	return 1;
+}
+
+unsigned char Move_pawn_shot3(){
+	Clear_pawn_shot3();
+	if(pawn_shot3.y_pos == user.y_pos - 1 && pawn_shot3.x_pos > user.x_pos && pawn_shot3.x_pos < (user.x_pos + 13) && user.life_pts > 0 && pawn_shot3.life_pts > 0){
+		user.life_pts -= 1;
+		pawn_shot3.life_pts = 0;
+		return 0;		// return 0 if shot from row 1[1] dead
+	}
+	else if(pawn_shot3.y_pos + 1 >5){
+		pawn_shot3.life_pts = 0;
+		return 0;
+	}
+	pawn_shot3.y_pos += 1;
+	Draw_pawn_shot3();
+	for(int i = 0; i<1000; i++);
+	return 1;
+}
+
+
+unsigned char Check_for_fire1(){
+	if(Enemy_Row1[1].life_pts > 0){
+		return 1;
+	}
+	return 0;
+}
+
+unsigned char Check_for_fire2(){
+	if(Enemy_Row2[0].life_pts > 0){
+		return 1;
+	}
+	return 0;
+}
+
+unsigned char Check_for_fire3(){
+	if(Enemy_Row2[3].life_pts > 0){
+		return 1;
+	}
+	return 0;
+}
+
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 //							small enemy									//
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
@@ -222,12 +374,12 @@ unsigned char Check_enemies(){
 void Clear_enemies(){
 	for(int i = 0; i < 4; ++i){
 		//if(Enemy_Row1[i].life_pts == 0){		// dont draw dead enemies
-			LCD_Clear_Sprite(Enemy_Row1[i].x_pos, Enemy_Row1[i].y_pos, Enemy_Row1[i].bmp, Enemy_Row1[i].sz);
-			for(int i = 0; i<1000; i++);
+		LCD_Clear_Sprite(Enemy_Row1[i].x_pos, Enemy_Row1[i].y_pos, Enemy_Row1[i].bmp, Enemy_Row1[i].sz);
+		for(int i = 0; i<1000; i++);
 		//}
 		//if(Enemy_Row2[i].life_pts == 0){		// dont draw dead enemies
-			LCD_Clear_Sprite(Enemy_Row2[i].x_pos, Enemy_Row2[i].y_pos, Enemy_Row2[i].bmp, Enemy_Row2[i].sz);
-			for(int i = 0; i<1000; i++);
+		LCD_Clear_Sprite(Enemy_Row2[i].x_pos, Enemy_Row2[i].y_pos, Enemy_Row2[i].bmp, Enemy_Row2[i].sz);
+		for(int i = 0; i<1000; i++);
 		//}
 	}
 	return;
@@ -374,8 +526,8 @@ void Move_player(unsigned char direction){
 	}
 	else if(direction == 0){	// 0 = move left
 		if(user.x_pos - dist > 0){
-				x = user.x_pos;
-				user.x_pos = x - dist;
+			x = user.x_pos;
+			user.x_pos = x - dist;
 		}
 		else{return;}
 	}
